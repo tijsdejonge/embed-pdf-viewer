@@ -32,6 +32,11 @@
       "import": "./dist/svelte/index.js",
       "svelte": "./dist/svelte/index.js",
       "require": "./dist/svelte/index.cjs"
+    },
+    "./angular": {
+      "types": "./dist/svelte/index.d.ts",
+      "import": "./dist/svelte/index.js",
+      "require": "./dist/svelte/index.cjs"
     }
   },
   "scripts": {
@@ -40,7 +45,8 @@
     "build:preact": "vite build --mode preact",
     "build:vue": "vite build --mode vue",
     "build:svelte": "vite build --mode svelte",
-    "build": "pnpm run clean && concurrently -c auto -n base,react,preact,vue,svelte \"vite build --mode base\" \"vite build --mode react\" \"vite build --mode preact\" \"vite build --mode vue\" \"vite build --mode svelte\"",
+    "build:angular": "vite build --mode angular",
+    "build": "pnpm run clean && concurrently -c auto -n base,react,preact,vue,svelte,angular \"vite build --mode base\" \"vite build --mode react\" \"vite build --mode preact\" \"vite build --mode vue\" \"vite build --mode svelte\" \"vite build --mode angular\"",
     "clean": "rimraf dist",
     "lint": "eslint src --color",
     "lint:fix": "eslint src --color --fix"
@@ -59,7 +65,9 @@
     "react": ">=16.8.0",
     "react-dom": ">=16.8.0",
     "svelte": ">=5 <6",
-    "vue": ">=3.2.0"
+    "vue": ">=3.2.0",
+    "@angular/core": ">=18.0.5",
+    "@angular/common": ">=18.0.5"
   },
   "files": [
     "dist",
