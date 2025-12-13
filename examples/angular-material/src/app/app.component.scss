@@ -1,0 +1,28 @@
+:host {
+  display: block;
+  height: 100vh;
+}
+
+mat-toolbar {
+  mat-icon {
+    margin-right: 8px;
+  }
+}
+
+.container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+mat-card {
+  mat-card-actions {
+    padding: 16px;
+    
+    button {
+      mat-icon {
+        margin-right: 8px;
+      }
+    }
+  }
+}
