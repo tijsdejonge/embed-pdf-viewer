@@ -9,6 +9,10 @@
     "watch": "ng build --watch --configuration development"
   },
   "dependencies": {
+    "@embedpdf/core": "workspace:*",
+    "@embedpdf/engines": "workspace:*",
+    "@embedpdf/models": "workspace:*",
+    "@embedpdf/utils": "workspace:*",
     "@angular/animations": "^18.0.0",
     "@angular/cdk": "^18.0.0",
     "@angular/common": "^18.0.0",

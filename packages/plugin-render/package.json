@@ -32,6 +32,11 @@
       "svelte": "./dist/svelte/index.js",
       "import": "./dist/svelte/index.js",
       "require": "./dist/svelte/index.cjs"
+    },
+    "./angular": {
+      "types": "./dist/angular/index.d.ts",
+      "import": "./dist/angular/index.js",
+      "require": "./dist/angular/index.cjs"
     }
   },
   "scripts": {
@@ -40,7 +45,8 @@
     "build:preact": "vite build --mode preact",
     "build:vue": "vite build --mode vue",
     "build:svelte": "vite build --mode svelte",
-    "build": "pnpm run clean && concurrently -c auto -n base,react,preact,vue,svelte \"vite build --mode base\" \"vite build --mode react\" \"vite build --mode preact\" \"vite build --mode vue\" \"vite build --mode svelte\"",
+    "build:angular": "vite build --mode angular",
+    "build": "pnpm run clean && concurrently -c auto -n base,react,preact,vue,svelte,angular \"vite build --mode base\" \"vite build --mode react\" \"vite build --mode preact\" \"vite build --mode vue\" \"vite build --mode svelte\" \"vite build --mode angular\"",
     "clean": "rimraf dist",
     "lint": "eslint src --color",
     "lint:fix": "eslint src --color --fix"
@@ -55,6 +61,8 @@
     "typescript": "^5.0.0"
   },
   "peerDependencies": {
+    "@angular/common": ">=14.0.0",
+    "@angular/core": ">=14.0.0",
     "@embedpdf/core": "workspace:*",
     "preact": "^10.26.4",
     "react": ">=16.8.0",

@@ -1,13 +1,12 @@
 import {
   BasePlugin,
-  IPlugin,
   PluginRegistry,
-  createEmitter,
   createBehaviorEmitter,
+  createEmitter,
   loadDocument,
   setDocument,
 } from '@embedpdf/core';
-import { PdfDocumentObject, PdfEngine } from '@embedpdf/models';
+import { PdfDocumentObject } from '@embedpdf/models';
 import { PDFDocumentLoader } from './loader';
 import { PDFLoadingOptions } from './loader/strategies/loading-strategy';
 import { LoaderCapability, LoaderEvent, LoaderPluginConfig } from './types';

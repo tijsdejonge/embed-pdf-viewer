@@ -115,6 +115,18 @@ importers:
       '@angular/platform-browser-dynamic':
         specifier: ^18.0.0
         version: 18.2.14(@angular/common@18.2.14(@angular/core@18.2.14(rxjs@7.8.2)(zone.js@0.14.10))(rxjs@7.8.2))(@angular/compiler@18.2.14(@angular/core@18.2.14(rxjs@7.8.2)(zone.js@0.14.10)))(@angular/core@18.2.14(rxjs@7.8.2)(zone.js@0.14.10))(@angular/platform-browser@18.2.14(@angular/animations@18.2.14(@angular/core@18.2.14(rxjs@7.8.2)(zone.js@0.14.10)))(@angular/common@18.2.14(@angular/core@18.2.14(rxjs@7.8.2)(zone.js@0.14.10))(rxjs@7.8.2))(@angular/core@18.2.14(rxjs@7.8.2)(zone.js@0.14.10)))
+      '@embedpdf/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@embedpdf/engines':
+        specifier: workspace:*
+        version: link:../../packages/engines
+      '@embedpdf/models':
+        specifier: workspace:*
+        version: link:../../packages/models
+      '@embedpdf/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       rxjs:
         specifier: ~7.8.0
         version: 7.8.2
@@ -1182,6 +1194,9 @@ importers:
         specifier: '>=3.2.0'
         version: 3.5.17(typescript@5.8.2)
     devDependencies:
+      '@angular/core':
+        specifier: ^19.0.0
+        version: 19.2.17(rxjs@7.8.2)(zone.js@0.14.10)
       '@embedpdf/build':
         specifier: workspace:*
         version: link:../build
@@ -1314,6 +1329,12 @@ importers:
 
   packages/plugin-render:
     dependencies:
+      '@angular/common':
+        specifier: '>=14.0.0'
+        version: 18.2.14(@angular/core@19.2.17(rxjs@7.8.2)(zone.js@0.14.10))(rxjs@7.8.2)
+      '@angular/core':
+        specifier: '>=14.0.0'
+        version: 19.2.17(rxjs@7.8.2)(zone.js@0.14.10)
       '@embedpdf/models':
         specifier: workspace:*
         version: link:../models
@@ -2295,6 +2316,13 @@ packages:
     peerDependencies:
       rxjs: ^6.5.3 || ^7.4.0
       zone.js: ~0.14.10
+
+  '@angular/core@19.2.17':
+    resolution: {integrity: sha512-nVu0ryxfiXUZ9M+NV21TY+rJZkPXTYo9U0aJb19hvByPpG+EvuujXUOgpulz6vxIzGy7pz/znRa+K9kxuuC+yQ==}
+    engines: {node: ^18.19.1 || ^20.11.1 || >=22.0.0}
+    peerDependencies:
+      rxjs: ^6.5.3 || ^7.4.0
+      zone.js: ~0.15.0
 
   '@angular/core@21.0.5':
     resolution: {integrity: sha512-HFXfO5YsBVM+IEaU8h3DZSxO98yDZM2v49NlSVNDzFD3fhnkpTmcgT2NKz9ulIiuV9N376itt+x+NG12sg/+Fw==}
@@ -13863,6 +13891,12 @@ snapshots:
       rxjs: 7.8.2
       tslib: 2.8.1
 
+  '@angular/common@18.2.14(@angular/core@19.2.17(rxjs@7.8.2)(zone.js@0.14.10))(rxjs@7.8.2)':
+    dependencies:
+      '@angular/core': 19.2.17(rxjs@7.8.2)(zone.js@0.14.10)
+      rxjs: 7.8.2
+      tslib: 2.8.1
+
   '@angular/common@21.0.5(@angular/core@21.0.5(rxjs@7.8.2))(rxjs@7.8.2)':
     dependencies:
       '@angular/core': 21.0.5(rxjs@7.8.2)
@@ -13891,6 +13925,12 @@ snapshots:
       '@angular/core': 18.2.14(rxjs@7.8.2)(zone.js@0.14.10)
 
   '@angular/core@18.2.14(rxjs@7.8.2)(zone.js@0.14.10)':
+    dependencies:
+      rxjs: 7.8.2
+      tslib: 2.8.1
+      zone.js: 0.14.10
+
+  '@angular/core@19.2.17(rxjs@7.8.2)(zone.js@0.14.10)':
     dependencies:
       rxjs: 7.8.2
       tslib: 2.8.1
