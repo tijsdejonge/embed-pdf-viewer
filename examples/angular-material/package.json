@@ -13,6 +13,7 @@
     "@embedpdf/engines": "workspace:*",
     "@embedpdf/models": "workspace:*",
     "@embedpdf/utils": "workspace:*",
+    "@embedpdf/plugin-render": "workspace:*",
     "@angular/animations": "^18.0.0",
     "@angular/cdk": "^18.0.0",
     "@angular/common": "^18.0.0",

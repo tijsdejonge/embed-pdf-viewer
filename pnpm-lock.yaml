@@ -124,6 +124,9 @@ importers:
       '@embedpdf/models':
         specifier: workspace:*
         version: link:../../packages/models
+      '@embedpdf/plugin-render':
+        specifier: workspace:*
+        version: link:../../packages/plugin-render
       '@embedpdf/utils':
         specifier: workspace:*
         version: link:../../packages/utils

@@ -1,0 +1,37 @@
+<mat-card>
+  <mat-card-header>
+    <mat-card-title>Angular PDF Viewer Example</mat-card-title>
+  </mat-card-header>
+
+  <mat-card-content>
+    <div class="controls">
+      <input
+        type="file"
+        accept="application/pdf"
+        (change)="onFileSelected($event)"
+        #fileInput
+        style="display: none"
+      />
+      <button mat-raised-button color="primary" (click)="fileInput.click()">
+        <mat-icon>upload_file</mat-icon>
+        Select PDF
+      </button>
+    </div>
+
+    @if (engineLoading()) {
+      <div class="loading">
+        <mat-icon>hourglass_empty</mat-icon>
+        Loading PDF engine...
+      </div>
+    } @else if (engineError()) {
+      <div class="error">
+        <mat-icon>error</mat-icon>
+        Error: {{ engineError()?.message }}
+      </div>
+    } @else if (engine()) {
+      <div class="pdf-container">
+        <embed-pdf [engine]="engine()!" [plugins]="plugins" [src]="pdfUrl()"> </embed-pdf>
+      </div>
+    }
+  </mat-card-content>
+</mat-card>

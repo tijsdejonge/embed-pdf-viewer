@@ -177,11 +177,20 @@ export function defineLibrary() {
           additionalPlugins: [svelte()]
         });
 
+      case 'angular':
+        if (!exists('angular/index.ts')) throw new Error('No Angular adapter');
+        return createConfig({
+          tsconfigPath: 'angular/tsconfig.angular.json',
+          entryPath: 'angular/index.ts',
+          outputPrefix: 'angular',
+          external: ['@angular/core', '@angular/common'],
+        });
+
       default: // base
         return createConfig({
           tsconfigPath: './tsconfig.json',
           entryPath: 'index.ts',
-          dtsExclude: ['**/react/**', '**/preact/**', '**/vue/**', '**/svelte/**'],
+          dtsExclude: ['**/react/**', '**/preact/**', '**/vue/**', '**/svelte/**', '**/angular/**'],
         });
     }
   });
