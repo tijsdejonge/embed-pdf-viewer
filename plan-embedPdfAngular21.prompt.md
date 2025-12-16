@@ -1,107 +1,157 @@
-## Plan: Modernize Angular EmbedPDF integration
+## Plan: Modernize Angular EmbedPDF integration (targeting v2.0.0)
 
-Bring the Angular packages in line with Angular 21 idioms (signals, `input()`, `inject()`, scoped DI, standalone defaults) while preserving EmbedPDF’s core contract: a single root `<EmbedPDF>` provider creates a `PluginRegistry`, registers one `plugins` array, awaits `initialize()` + `pluginsReady()`, auto-mounts plugin DOM elements, and tears down safely on destroy / input changes.
+This plan updates the Angular adapter to **EmbedPDF v2.0.0’s multi-document architecture** while keeping a clean Angular 21 developer experience (signals-first, `input()`, `inject()`, component-scoped providers, OnPush, and deterministic cleanup).
 
-### Steps
+In v2, “which document?” becomes a first-class concern across core + plugins. The Angular integration should embrace that explicitly:
 
-1. Refactor `<embed-pdf>` to “React-parity lifecycle” in [packages/core/src/angular/components/embed-pdf.component.ts](packages/core/src/angular/components/embed-pdf.component.ts) (`EmbedPdfComponent`).
-2. Fix Angular DI scoping + remove manual `new` in [packages/core/src/angular/services](packages/core/src/angular/services) (`RegistryService`, `PluginService`, `CapabilityService`, `CoreStateService`, `StoreStateService`).
-3. Modernize public Angular API to Angular 21 style in [packages/core/src/angular](packages/core/src/angular) (replace `@Input` with `input()`, remove `standalone: true`, tighten `PDFContextState` typing).
-4. Improve auto-mount rendering strategy in [packages/core/src/angular/components/auto-mount.component.ts](packages/core/src/angular/components/auto-mount.component.ts) (`AutoMountComponent`) to avoid mixing `@for` + `*ngComponentOutlet`, and to enable correct injector scoping for mounted utilities/wrappers.
-5. Align `@embedpdf/engines` Angular integration with the same modern patterns in [packages/engines/src/angular](packages/engines/src/angular) (`PdfEngineService`, `PdfEngineProviderComponent`) so it composes cleanly with `<embed-pdf>`.
+- `<embed-pdf>` still owns a single `PluginRegistry` lifecycle (create/register/initialize/destroy).
+- The Angular API must make `documentId` and `activeDocumentId` easy to work with.
+- Services should provide **document-scoped facades** (e.g., `forDocument(id)`), with ergonomic defaults (e.g., “active document”).
 
-### Further Considerations
+### Steps (v2-first execution order)
 
-1. Should `<embed-pdf>` support live updates to `plugins`/`engine`, or document them as “identity inputs” (recreate-only)?
-2. Do you want Angular to expose “hooks-like” helpers (signals-based) or keep class-based services as the primary access pattern?
-3. Is SSR a goal? If yes, decide whether engine init must be client-only and how to guard DOM auto-mount.
+1. **Fork/upgrade to the v2.0.0 branch** and align package versions/exports so the Angular work is done against v2 contracts.
+2. Refactor `<embed-pdf>` to **v2-ready lifecycle** and provide a richer `PDF_CONTEXT` that supports multi-document usage.
+3. Rebuild Angular services around **document-scoped access** (`forDocument(documentId)`), removing any remaining manual instantiation (`new ...`) and ensuring provider scope correctness.
+4. Modernize the public Angular API to Angular 21 style (signal inputs via `input()`, typed context, optional “active document” helpers).
+5. Upgrade auto-mount to be **document-aware** and use a consistent dynamic rendering strategy (prefer programmatic creation with correct injector scoping).
+6. Align `@embedpdf/engines` Angular integration with v2’s multi-document expectations (including cleanup/memory behavior), and add minimal multi-doc test coverage.
+
+### Further Considerations (v2-specific)
+
+1. Who “owns” the active document in Angular?
+   - Option A: Angular wrapper exposes a `setActiveDocumentId(...)` helper and reads `registry.getActiveDocumentId*()`.
+   - Option B: user code owns it; Angular only reflects it.
+2. Should Angular components default to **active document** when `documentId` isn’t provided (ergonomic) or require explicit `documentId` (safer)?
+3. Auto-mount semantics in multi-doc:
+   - “utilities” are global vs per-document?
+   - wrappers wrap the viewer root vs a per-document subtree?
+4. SSR: v2 doesn’t change the fact that engines and many plugins are DOM-dependent. Decide whether `<embed-pdf>` must be client-only and how to defer init.
 
 ---
 
 ### What each step concretely changes (so it’s actionable)
 
-**1) React-parity lifecycle for `<embed-pdf>`**
+**1) Upgrade/fork from v2.0.0**
 
-- In `EmbedPdfComponent`, treat `engine` + `plugins` as _reactive identity inputs_:
-  - when either changes: destroy old registry, create new `PluginRegistry`, `registerPluginBatch()`, `initialize()`, then `pluginsReady()`.
-- Add destroy-safety guards mirroring React/Svelte behavior:
-  - don’t set `pluginsReady` after component destroy or after registry is destroyed.
-- Keep the EmbedPDF contract intact: `pluginsReady` gates auto-mount (same as React `AutoMount` and core `PluginRegistry.pluginsReady()` semantics).
+- Base all Angular API decisions on v2 contracts:
+  - multi-document state (`documents: Record<string, ...>` + `activeDocumentId`),
+  - document-aware actions/events,
+  - plugin document lifecycle hooks,
+  - `forDocument(documentId)` patterns exposed by plugins.
 
-**2) Correct DI + scoping (biggest Angular correctness fix)**
+Acceptance criteria:
 
-- Remove `new RegistryService()` / `new PluginService()` patterns.
-- Provide registry-aware services in the same injector scope as `<embed-pdf>` so they always read the right `PDF_CONTEXT`:
-  - `RegistryService` should `inject(PDF_CONTEXT, { optional: true })` and be provided at the component level (or in a dedicated provider component).
-  - `PluginService`, `CapabilityService`, `CoreStateService`, `StoreStateService` should use `inject(RegistryService)` rather than instantiating it.
-- Ensure subscription cleanup uses Angular primitives (e.g., `DestroyRef`) instead of relying on class destructors that may never run if the service is incorrectly scoped.
+- The workspace builds against v2 types (even before Angular refinements), so refactors aren’t fighting stale types.
 
-**3) Angular 21 API modernization**
+**2) v2-ready lifecycle for `<embed-pdf>`**
 
-- Replace `@Input()` with `input()` for:
-  - `EmbedPdfComponent` (`engine`, `plugins`, `logger`, `autoMountDomElements`, `onInitialized`)
-  - `AutoMountComponent` (`plugins`)
-  - `NestedWrapperComponent` (`wrappers`)
-- Remove explicit `standalone: true` from decorators (standalone is default now).
-- Tighten `PDFContextState` in [packages/core/src/angular/context.ts](packages/core/src/angular/context.ts):
-  - avoid the current “getter + `as any`” pattern; instead expose a stable context that’s either signals or plain values, but typed.
-  - Recommendation: expose signals in context (or a typed façade), because the Angular code is already signal-first.
+Goal: keep a single registry lifecycle, but expose enough multi-doc affordances for the rest of Angular.
 
-**4) Auto-mount rendering improvements**
+- Treat `engine` + `plugins` as **identity inputs** (recreate registry when they change).
+- Maintain destroy-safety (stale async init must not win).
+- Extend Angular context to support v2:
+  - `registry` (signal)
+  - `isInitializing` (signal)
+  - `pluginsReady` (signal)
+  - `activeDocumentId` (signal or computed from registry)
+  - optional helpers: `getActiveDocumentIdOrNull()` and `getCoreDocumentOrThrow(documentId)` should be used behind services, not in templates.
 
-- Today `AutoMountComponent` uses `@for` plus `*ngComponentOutlet`, which mixes new control flow with legacy structural directives.
-- Prefer one of these consistent approaches:
-  - **Option A (recommended): programmatic creation** using `ViewContainerRef.createComponent` and/or `createComponent` so you can:
-    - pass the right injector scope for each mount (critical for `PDF_CONTEXT`),
-    - explicitly control attachment point (`hostElement`) when the mount point comes from EmbedPDF,
-    - manage lifetimes deterministically.
-  - **Option B: keep templates only**, but switch to a purely template-driven strategy (accepting limitations around injector control and wrapper nesting).
-- Preserve EmbedPDF intent: wrappers wrap the subtree in a deterministic order; utilities mount independently after readiness.
+Acceptance criteria:
 
-**4a) Concrete Angular 21 strategy for AutoMount (createComponent / ViewContainerRef)**
+- Recreating the registry does not leak views or subscriptions.
+- Multi-document apps can render without forcing a single document model.
 
-Angular provides two good primitives here:
+**3) Document-scoped Angular services (the v2 “correctness layer”)**
 
-- **`ViewContainerRef.createComponent(...)`**: creates a component and automatically inserts it into the current view hierarchy. Use this when the mounted UI should be part of the Angular tree at the AutoMount location.
-- **Standalone `createComponent(...)` with `hostElement`**: creates a `ComponentRef` and lets you mount it wherever you want (including onto an existing DOM element coming from EmbedPDF). Use this when the mount point is not naturally an Angular “in-tree” node or when you need to mount into a specific element returned by `PluginRegistry`.
+In v2, most plugin APIs are effectively two-tier:
 
-Key details to incorporate into the implementation (pulled from Angular v21 docs):
+- registry-level (global)
+- per-document (via `forDocument(documentId)` / document-aware actions)
 
-- Both APIs support a `bindings` array so you can declaratively wire inputs/outputs at creation time via `inputBinding`, `outputBinding`, `twoWayBinding`.
-- Both APIs support a `directives` array to apply host directives.
-- When using standalone `createComponent`, you must usually:
-  - provide `environmentInjector`,
-  - `ApplicationRef.attachView(ref.hostView)` so it participates in change detection,
-  - and on cleanup `ApplicationRef.detachView(ref.hostView)` + `ref.destroy()`.
+Angular should mirror that with small, typed facades:
 
-Implementation notes for EmbedPDF’s AutoMount semantics:
+- `RegistryService`: owns access to the current `PluginRegistry` from `PDF_CONTEXT`.
+- `PluginService`: registry-wide plugin access.
+- `DocumentScopeService` (new): resolves a `documentId` (explicit or active) and returns typed per-document scopes:
+  - `forDocument(documentId)` wrappers
+  - helpers for “active document fallback”
 
-- **Wrappers (nesting)**: treat wrappers as a deterministic stack. Programmatically create them either:
+Key DI rule:
 
-  - in-tree (via `ViewContainerRef.createComponent`) into a single “anchor” container and pass down the next anchor (DOM element or token) to the next wrapper, or
-  - out-of-tree by creating a host element per wrapper and wiring it to the exact DOM element EmbedPDF expects.
+- Provide registry-aware services in the same **ElementInjector scope** as `<embed-pdf>` (component `providers`) so multiple viewers on the same page don’t share state.
+  - This aligns with Angular’s ElementInjector isolation model (see https://angular.dev/guide/di/hierarchical-dependency-injection#elementinjector).
 
-- **Utilities (independent mounts)**: for each `autoMountElement`, mount a component into the exact element provided by the registry (best fit for standalone `createComponent` + `hostElement`), or into a known “utilities outlet” container (best fit for `ViewContainerRef.createComponent`).
+Acceptance criteria:
 
-- **Cleanup**: whenever `plugins`/`engine` changes or the component is destroyed, ensure we:
-  - destroy all mounted component refs,
-  - remove any host elements we created,
-  - and (for standalone `createComponent`) detach views from `ApplicationRef` before destroy.
+- Two `<embed-pdf>` instances do not cross-talk.
+- All subscriptions/effects are cleaned up on destroy.
 
-Docs references (Angular v21):
+**4) Angular 21 public API modernization (v2-flavored)**
 
-- `createComponent`: https://angular.dev/api/core/createComponent
-- Programmatic rendering guide (includes in-tree vs out-of-tree + bindings examples): https://angular.dev/guide/components/programmatic-rendering
-- `ViewContainerRef.createComponent`: https://angular.dev/api/core/ViewContainerRef#createComponent
-- Binding helpers: https://angular.dev/api/core/inputBinding , https://angular.dev/api/core/outputBinding , https://angular.dev/api/core/twoWayBinding
+- Replace `@Input()` with `input()` for all public components.
+  - `input.required<T>()` for required identity inputs.
+  - Docs: https://angular.dev/api/core/input
+- Add optional `documentId` inputs on any Angular components that wrap **document-scoped plugin components** (render layers, scrollers, selection/annotation layers, etc.).
+- Prefer signal-first exports:
+  - provide `Signal`/`computed` accessors in services
+  - optionally keep observable adapters for backwards compatibility (library ergonomics)
 
-**5) Engines Angular alignment**
+Acceptance criteria:
 
-- `PdfEngineProviderComponent` / `PdfEngineService` currently read more “Angular <=16 RxJS-era”.
-- Modernize by:
-  - making `PdfEngineProviderComponent` standalone + OnPush
-  - switching `PdfEngineService` state to signals (or at least providing signal facades) so `<embed-pdf>` users can stay in signal-land
-  - removing unused subscription plumbing in the provider component (it currently tracks `subscription` but never assigns it)
-- Keep public API stable (engine$, isLoading$, error$ can remain if you want backward compatibility), but prefer signals for new examples.
+- Consumers can build either:
+  - “single-doc simple” usage (no `documentId` provided, active doc is used), or
+  - “multi-doc explicit” usage (pass `documentId` everywhere it matters).
 
-If you want, I can refine this plan into an “execution order” that minimizes breaking changes (e.g., first fix DI scoping + reinit semantics without changing public APIs, then do `input()` migration, then improve auto-mount rendering).
+**5) Auto-mount rendering improvements (v2-aware)**
+
+In v2, auto-mounted UI often needs the right viewer-scoped injector _and_ may need to respond to document changes.
+
+- Prefer **programmatic creation** so you control injector scoping and host placement.
+  - In-tree: `ViewContainerRef.createComponent(...)` (best when the mounted UI should be part of the Angular tree).
+    - API: https://angular.dev/api/core/ViewContainerRef#createComponent
+  - Out-of-tree / mount into a specific DOM node: `createComponent(..., { hostElement, environmentInjector })` + `ApplicationRef.attachView(...)`.
+    - API: https://angular.dev/api/core/createComponent
+- Use `bindings` and helpers to wire inputs/outputs at creation time:
+  - `inputBinding`, `outputBinding`, `twoWayBinding`
+  - Guide section: https://angular.dev/guide/components/programmatic-rendering#binding-inputs-outputs-and-setting-host-directives-at-creation
+
+Document-aware behavior to implement:
+
+- If wrappers/utilities are effectively per-document, mount them keyed by `documentId` and tear down on document close.
+- If they’re global, mount once per registry.
+
+Note:
+
+- If you keep template-driven dynamic rendering, `NgComponentOutlet` supports passing both an `Injector` and `EnvironmentInjector` (`ngComponentOutletInjector`, `ngComponentOutletEnvironmentInjector`), but you lose some control over host placement and lifecycle ergonomics.
+  - API: https://angular.dev/api/common/NgComponentOutlet
+
+Acceptance criteria:
+
+- No mixing new control flow (`@for`) with legacy structural directives in a way that complicates injector scoping.
+- Auto-mounted components always see the correct `PDF_CONTEXT`.
+
+**6) Engines Angular alignment + multi-doc regression coverage**
+
+- Ensure the Angular engine provider story composes with multi-document:
+  - engine init remains viewer-scoped
+  - cleanup paths are deterministic
+  - memory-sensitive flows (open/close multiple docs) do not leak resources
+
+Add minimal tests (or an example harness) that:
+
+- opens two documents (two `documentId`s),
+- switches `activeDocumentId`,
+- closes a document,
+- verifies per-document state is isolated and resources are freed.
+
+---
+
+### Suggested shape of the v2 Angular API (high-level)
+
+- `PDF_CONTEXT` should expose signals (or a typed façade) rather than a mutable object with `as any`.
+- Services should offer both:
+  - `active` document helpers (ergonomic)
+  - `forDocument(documentId)` helpers (explicit multi-doc)
+
+This keeps Angular usage pleasant for “one viewer, one doc” while still being correct and scalable for v2’s multi-document model.
